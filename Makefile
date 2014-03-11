@@ -1,3 +1,4 @@
 all:
 	mkdir -p bin
-	#gcc n.c -o bin/n.o
+	gcc -g cp.c -o bin/cp.o
+	gcc -Wall -g _hello.c -o bin/_hello.o `pkg-config --cflags gtk+-2.0` `pkg-config --libs gtk+-2.0`
