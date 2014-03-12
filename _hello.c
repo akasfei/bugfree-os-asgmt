@@ -1,14 +1,6 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 
-/* This is a callback function. The data arguments are ignored
- * in this example. More on callbacks below. */
-static void hello( GtkWidget *widget,
-                   gpointer   data )
-{
-    g_print ("Hello World\n");
-}
-
 static void delete_event( GtkWidget *widget,
                               GdkEvent  *event,
                               gpointer   data )
@@ -24,16 +16,47 @@ static void destroy( GtkWidget *widget,
     gtk_main_quit ();
 }
 
+static void hide_window( GtkWidget *widget,
+                         gpointer   data )
+{
+    gtk_widget_hide_all( widget );
+}
+
+static gboolean out_watch( GIOChannel *channel,
+                           GIOCondition cond,
+                           GtkTextBuffer *out_buf )
+{
+    gchar *string;
+    gsize  size;
+
+    if( cond == G_IO_HUP )
+    {
+        g_io_channel_unref( channel );
+        return( FALSE );
+    }
+
+    g_io_channel_read_line( channel, &string, &size, NULL, NULL );
+    gtk_text_buffer_insert_at_cursor( out_buf, string, -1 );
+    g_free( string );
+
+    return( TRUE );
+}
+
 static gboolean proc_create( GtkWidget *window, 
-                             GtkWidget *output,
                              gchar **argv )
 {
     GPid proc_pid;
     gint proc_stdout;
+
+    GtkTextBuffer *out_buf = gtk_text_buffer_new(NULL);
+    GtkWidget *output = gtk_text_view_new_with_buffer(out_buf);
+    gtk_container_add (GTK_CONTAINER (window), output);
+    gtk_widget_show_all(window);
+
     gboolean proc_status = g_spawn_async_with_pipes ( "./",
                                                       argv, /* gchar **argv, */
                                                       NULL, /* gchar **envp, */
-                                                      0777, /* GSpawnFlags flags, */
+                                                      0, /* GSpawnFlags flags, */
                                                       NULL, /* GSpawnChil   dSetupFunc child_setup, */
                                                       NULL, /* gpointer user_data, */
                                                       &proc_pid, /* GPid *child_pid, */
@@ -41,23 +64,36 @@ static gboolean proc_create( GtkWidget *window,
                                                       &proc_stdout, /* gint *standard_output, */
                                                       NULL, /* gint *standard_error, */
                                                       NULL); /* GError **error */
-    GtkTextBuffer *out_buf = gtk_text_buffer_new(NULL);
-    gtk_text_view_set_buffer((GtkTextView *)output, out_buf);
-    gtk_widget_show_all(window);
-    char buffer[4096];
-    while (!kill(proc_pid, 0))
-    {
-        ssize_t count = read(proc_stdout, buffer, sizeof (buffer));
-        if (count == -1) {
-            break;
-        } else if (count == 0) {
-            continue;
-        } else {
-            gtk_text_buffer_insert_at_cursor( out_buf, buffer, count );
-            gtk_text_view_set_buffer( output, out_buf );
-        }
-    }
+    g_print("pid: %d\n", proc_pid);
+    GIOChannel *out_ch;
+    out_ch = g_io_channel_unix_new( proc_stdout );
+    g_io_add_watch( out_ch, G_IO_IN | G_IO_HUP, (GIOFunc)out_watch, out_buf );
+    //g_print("Process has exited.\n");
     return proc_status;
+}
+
+static void start_proc_1( GtkWidget *widget,
+                          gpointer   data )
+{
+    GtkWidget *window = (GtkWidget *)data;
+    gchar *argv[] = {"./bin/count.o", "5", NULL};
+    proc_create(window, argv);
+}
+
+static void start_proc_2( GtkWidget *widget,
+                          gpointer   data )
+{
+    GtkWidget *window = (GtkWidget *)data;
+    gchar *argv[] = {"./bin/count.o", "10", NULL};
+    proc_create(window, argv);
+}
+
+static void start_proc_3( GtkWidget *widget,
+                          gpointer   data )
+{
+    GtkWidget *window = (GtkWidget *)data;
+    gchar *argv[] = {"./bin/count.o", "20", NULL};
+    proc_create(window, argv);
 }
 
 int main( int   argc,
@@ -96,22 +132,20 @@ int main( int   argc,
 
     /* Windows for showing each process */
     GtkWidget *pWin_1, *pWin_2, *pWin_3;
+    pWin_1 = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    pWin_2 = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    pWin_3 = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (pWin_1), 480, 360);
     gtk_window_set_default_size (GTK_WINDOW (pWin_2), 480, 360);
     gtk_window_set_default_size (GTK_WINDOW (pWin_3), 480, 360);
 
-    /* Text fields for each window */
-    GtkWidget *pout_1, *pout_2, *pout_3;
-    pout_1 = gtk_text_view_new();
-    pout_2 = gtk_text_view_new();
-    pout_3 = gtk_text_view_new();
-
-    gtk_container_add (GTK_CONTAINER (pWin_1), pout_1);
-    gtk_container_add (GTK_CONTAINER (pWin_2), pout_2);
-    gtk_container_add (GTK_CONTAINER (pWin_3), pout_3);
+    g_signal_connect (pWin_1, "delete-event", G_CALLBACK (hide_window), NULL);
+    g_signal_connect (pWin_2, "delete-event", G_CALLBACK (hide_window), NULL);
+    g_signal_connect (pWin_3, "delete-event", G_CALLBACK (hide_window), NULL);
+    g_signal_connect (btn_1, "clicked", G_CALLBACK (start_proc_1), pWin_1);
+    g_signal_connect (btn_2, "clicked", G_CALLBACK (start_proc_2), pWin_2);
+    g_signal_connect (btn_3, "clicked", G_CALLBACK (start_proc_3), pWin_3);
     
-    g_signal_connect (btn_1, "clicked",
-              G_CALLBACK (hello), NULL);
 
     gtk_widget_show_all (window);
     
