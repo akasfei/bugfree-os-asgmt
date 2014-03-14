@@ -11,6 +11,7 @@ struct _SYSPERF
     GtkWidget *window;
     GtkWidget *textarea;
     GtkWidget *btn_refresh;
+    GtkWidget *btn_auto;
 };
 typedef struct _SYSPERF _SYSPERF;
 
@@ -66,6 +67,14 @@ static void _performance_update( gpointer data )
     g_free(output_text);
 }
 
+static void _toggle_auto_refresh (GtkWidget *widget, gpointer data)
+{
+    _SYSPERF *_sysperf; 
+    _sysperf = (_SYSPERF *)data;
+
+    g_timeout_add_seconds (1, (GSourceFunc)_performance_update, _sysperf);
+}
+
 static void _performance_refresh (GtkWidget *widget, gpointer data)
 {
     _SYSPERF *_sysperf; 
@@ -82,8 +91,10 @@ static _SYSPERF * performance_init( GtkWidget *window )
     _sysperf->window = window;
     _sysperf->textarea = gtk_label_new ("Waiting for data...");
     _sysperf->btn_refresh = gtk_button_new_with_label ("Refresh");
+    _sysperf->btn_auto = gtk_button_new_with_label ("Toggle auto Refresh");
 
     g_signal_connect ( _sysperf->btn_refresh, "clicked", G_CALLBACK (_performance_refresh), _sysperf );
+    g_signal_connect ( _sysperf->btn_auto, "clicked", G_CALLBACK (_toggle_auto_refresh), _sysperf );
 
     return _sysperf;
 }
