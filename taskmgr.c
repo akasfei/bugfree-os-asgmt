@@ -87,6 +87,7 @@ int main( int   argc,
     tab_container_3 = gtk_vbox_new (FALSE, 10);
     _sysperf = performance_init( window );
     gtk_container_add (GTK_CONTAINER (tab_container_3), _sysperf->textarea);
+    gtk_container_add (GTK_CONTAINER (tab_container_3), _sysperf->btn_refresh);
 
     g_timeout_add_seconds (1, (GSourceFunc)_performance_update, _sysperf);
 

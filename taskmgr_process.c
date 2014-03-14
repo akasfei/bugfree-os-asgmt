@@ -169,6 +169,7 @@ static void _process_kill( GtkWidget *widget, gpointer data )
             gtk_tree_model_get (model, &iter, PID_COL, &pid, -1);
             g_print ("Killing process %d\n", pid);
             kill(pid, 1);
+            sleep(0.4);
             process_update( _sysproc );
     }
 }
