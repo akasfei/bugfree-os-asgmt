@@ -8,6 +8,7 @@
 #include "taskmgr_sysinfo.c"
 #include "taskmgr_process.c"
 #include "taskmgr_performance.c"
+#include "taskmgr_util.c"
 
 static void delete_event( GtkWidget *widget,
                               GdkEvent  *event,
@@ -23,13 +24,13 @@ static void destroy( GtkWidget *widget,
 {
     gtk_main_quit ();
 }
-
+/*
 static void hide_window( GtkWidget *widget,
                          gpointer   data )
 {
     gtk_widget_hide_all( widget );
 }
-
+*/
 int main( int   argc,
           char *argv[] )
 {
@@ -81,14 +82,25 @@ int main( int   argc,
 
     /* Display system Performance */
 
+    GtkWidget *tab_container_3;
     _SYSPERF *_sysperf;
+    tab_container_3 = gtk_vbox_new (FALSE, 10);
     _sysperf = performance_init( window );
+    gtk_container_add (GTK_CONTAINER (tab_container_3), _sysperf->textarea);
+
     g_timeout_add_seconds (1, (GSourceFunc)_performance_update, _sysperf);
+
+    /* Util */
+    GtkWidget *tab_container_4;
+    tab_container_4 = gtk_vbox_new ( FALSE, 10 );
+    util_init( tab_container_4 );
 
     /* Adding tabs to notebook */
 
     gtk_notebook_append_page ((GtkNotebook *)notebook, tab_container_1, gtk_label_new ("System Info"));
     gtk_notebook_append_page ((GtkNotebook *)notebook, tab_container_2, gtk_label_new ("Process"));
+    gtk_notebook_append_page ((GtkNotebook *)notebook, tab_container_3, gtk_label_new ("Performance"));
+    gtk_notebook_append_page ((GtkNotebook *)notebook, tab_container_4, gtk_label_new ("Utilities"));
 
     gtk_container_add (GTK_CONTAINER (window), notebook);
 
